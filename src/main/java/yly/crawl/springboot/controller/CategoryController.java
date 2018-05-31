@@ -39,7 +39,7 @@ public class CategoryController {
  
     @RequestMapping("/addCategory")
     public String addCategory(Category c) throws Exception {
-    	System.out.println("id="+c.getId());
+    	System.out.println("id="+c.getId());  
         categoryDAO.save(c);
         return "redirect:listCategory";
     }

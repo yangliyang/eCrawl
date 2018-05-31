@@ -10,11 +10,11 @@ import org.springframework.web.servlet.ModelAndView;
 @Controller
 public class HelloController {
 	@RequestMapping("/hello")
-	public ModelAndView hello(ModelAndView m){
-		m.setViewName("hello");
+	public ModelAndView hello(ModelAndView mav){
+		mav.setViewName("hello");
 
-		m.addObject("now", DateFormat.getDateTimeInstance().format(new Date()));
-		return m;
+		mav.addObject("now", DateFormat.getDateTimeInstance().format(new Date()));
+		return mav;
 	}
 
 }
