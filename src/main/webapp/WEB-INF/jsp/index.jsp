@@ -64,10 +64,14 @@
 	    //发送消息
 	    function send(){
 	    	var url = $('#url').val();
-			var num = $('#num').val();
-			if(url && num){
-				var msg = url+','+num;
+			var begin = $('#begin').val();
+			var end = $('#end').val();
+			if(url && begin && end){
+				$("#show_message").val("");
+				var msg = url + ',' + begin + ',' + end;
 				websocket.send(msg);
+			}else{
+				$("#show_message").val("输入不完整！");
 			}
 	    }
 	
@@ -104,8 +108,12 @@
 			</div>
 				 
 				<div class="input-group">
-					<span class="input-group-addon" id="basic-addon2">长度/大小</span>
-				  <input type="text" id="num" class="form-control" value='0' aria-describedby="basic-addon2">
+					<span class="input-group-addon" id="basic-addon2">起始</span>
+				  <input type="text" id="begin" class="form-control" value='1' aria-describedby="basic-addon2">
+				  </div>
+				  <div class="input-group">
+					<span class="input-group-addon" id="basic-addon2">结束</span>
+				  <input type="text" id="end" class="form-control" value='0' aria-describedby="basic-addon2">
 				  
 			</div>
 			

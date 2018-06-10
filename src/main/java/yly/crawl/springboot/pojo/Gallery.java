@@ -1,11 +1,9 @@
 package yly.crawl.springboot.pojo;
 
-import java.sql.Date;
+import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
  
@@ -13,32 +11,36 @@ import javax.persistence.Table;
 @Table(name = "gallery") //对应的表名
 public class Gallery {
  
-    @Id //主键标识
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //自增长方式
-    @Column(name = "id") //数据库字段名（属性、列名）
-    private Integer id;
-     
+//    @Id //主键标识
+//    @GeneratedValue(strategy = GenerationType.IDENTITY) //自增长方式
+//    @Column(name = "id") //数据库字段名（属性、列名）
+//    private Integer id;
+//     
     @Column(name = "url")
     private String url;
     
-    @Column(name = "serial_id")
+    
+	
+	@Id
+	@Column(name = "serial_id")
     private String serialId;
     
     @Column(name = "title")
     private String title;
     
     @Column(name = "lenth")
-    private String lenth;
+    private Integer lenth;
     
     @Column(name = "gmt_create")
     private Date gmtCreate;
 
-	public int getId() {
-		return id;
+
+	public Integer getLenth() {
+		return lenth;
 	}
 
-	public void setId(Integer id) {
-		this.id = id;
+	public void setLenth(Integer lenth) {
+		this.lenth = lenth;
 	}
 
 	public String getUrl() {
@@ -65,13 +67,7 @@ public class Gallery {
 		this.title = title;
 	}
 
-	public String getLenth() {
-		return lenth;
-	}
-
-	public void setLenth(String lenth) {
-		this.lenth = lenth;
-	}
+	
 
 	public Date getGmtCreate() {
 		return gmtCreate;

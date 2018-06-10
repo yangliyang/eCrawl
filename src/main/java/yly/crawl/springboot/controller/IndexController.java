@@ -6,10 +6,13 @@ import org.springframework.web.servlet.ModelAndView;
 
 @Controller
 public class IndexController {
-	@RequestMapping("/")
+	@RequestMapping("/index")
 	public ModelAndView showIndexPage(){
 		ModelAndView mav = new ModelAndView("index");
 		return mav;
 	}
-	
+	@RequestMapping("/")
+	public String jump(){
+		return "redirect:index";
+	}
 }
