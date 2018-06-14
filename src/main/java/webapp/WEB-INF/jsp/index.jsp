@@ -8,6 +8,9 @@
 		div{
 			margin:10px;
 		}
+		html,body{
+			height:100%;
+		}
 	</style>
     <script type="text/javascript" src="/js/jquery.min.js"></script>
     <title>eDownload</title>
@@ -43,6 +46,7 @@
 	    //连接关闭的回调方法
 	    websocket.onclose = function(){
 	        //setMessageInnerHTML("close");
+	        setMessageInnerHTML("连接已断开！请刷新浏览器！");
 	    }
 
 	    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
@@ -53,6 +57,11 @@
 	    //将消息显示在网页上
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
+	    	var scrollTop = $("#show_message")[0].scrollHeight;  
+            $("#show_message").scrollTop(scrollTop);  
+	    	if(msg=='complete\n'){
+	    		$('#download').removeAttr("hidden");
+	    	}
 			$("#show_message").val(show + msg);
 	    }
 
@@ -76,32 +85,21 @@
 	    }
 	
 	
-	function start(){
-		var url = $('#url').val();
-		var num = $('#num').val();
-		
-		if(url && num){
-			$.ajax({
-				type : 'post',
-				url : '/start',
-				data : {'url':url, 'num':num},
-				success : function(msg){
-					console.log(msg);
-					show = $("#show_message").val();
-					$("#show_message").val(show + msg);
-				}
-			});
-		}
+
+
 		
 		
-	}
+	
 	
 	
 	</script>
 	
 	</head>
 	<body>
-		<div style='width:400px;'>
+		<div style='width:800px;margin:0 auto;height:100%;text-align:center'>
+			<div class="page-header">
+  				<h1>下载王<small>说明：结束为0表示全部</small></h1>
+			</div>
 			<div class="input-group">
 				  <span class="input-group-addon" id="basic-addon1">地址</span>
 				  <input id="url" type="text" class="form-control" placeholder="https://..." aria-describedby="basic-addon1">
@@ -120,8 +118,11 @@
 			<div>
 				<button onclick="send()" class="btn btn-primary">开始</button>
 			</div>
-			<div>
-				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:200px;resize:none"></textarea>
+			<div hidden id="download">
+				<a href='/download'><button   class="btn btn-danger" >下载</button></a>
+			</div>
+			<div style="height:100%">
+				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:60%;resize:none"></textarea>
 			</div>
 		</div>
 		

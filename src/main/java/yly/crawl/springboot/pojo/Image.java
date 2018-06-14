@@ -86,8 +86,11 @@ public class Image {
 		this.gmtCreate = gmtCreate;
 	}
 
-	
-    
+	@Override
+	public String toString() {
+		return galleryId+"/"+serialNum;
+	}
+
     
     
     

@@ -8,6 +8,6 @@ import org.springframework.data.jpa.repository.Query;
 import yly.crawl.springboot.pojo.Image;
 
 public interface ImageDAO extends JpaRepository<Image, String> {
-	@Query("select image from Image image where image.galleryId=?1 and image.serialNum>=?2 and image.serialNum<=?3")
+	@Query("select image from Image image where image.galleryId=?1 and image.serialNum>=?2 and image.serialNum<=?3 order by image.serialNum")
 	List<Image> inImage(String galleryId, Integer beginSerialNum, Integer endSerialNum);
 }
