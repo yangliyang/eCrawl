@@ -16,6 +16,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -106,7 +107,7 @@ public class Ecrawler {
 	private static final String AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
 	private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
 	private static final int DEFAULT_TIMEOUT = 30000;//30s的超时检测
-	private static final String ROOT_PATH = "F:\\images\\";
+	private static final String ROOT_PATH = "\\images\\";
 	private static final String ZIP_PATH = ROOT_PATH + "zips\\";
 	
 	public  CloseableHttpResponse getResponse(String url, int refreshTime, int timeout, int sleep) {
@@ -532,7 +533,7 @@ public class Ecrawler {
 			imageUrl = image.getUrl();
 			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_TIMEOUT, 2000);
 			if(null == res || res.getStatusLine().getStatusCode()==403){
-				imageDAO.delete(imageUrl);
+				imageDAO.deleteById(imageUrl);
 				sendMessage("更新......");
 				String innerHtml = getHtml(image.getInnerUrl());
 				imageUrl = getImageUrl(innerHtml);
@@ -557,7 +558,8 @@ public class Ecrawler {
 	 */
 	private Map<String, Object> getInfoMap(String url, int begin, int end){
 		String serialId = getSerialId(url);
-		Gallery gallery = galleryDAO.findOne(serialId);
+		Optional<Gallery> galleryOptional = galleryDAO.findById(serialId);
+		Gallery gallery = galleryOptional.orElse(null);
 		if(gallery == null){
 			
 			return exDownloadOuter(url, begin, end);

@@ -122,7 +122,7 @@
 				<a href='/download'><button   class="btn btn-danger" >下载</button></a>
 			</div>
 			<div style="height:100%">
-				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:60%;resize:none"></textarea>
+				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:50%;resize:none"></textarea>
 			</div>
 		</div>
 		

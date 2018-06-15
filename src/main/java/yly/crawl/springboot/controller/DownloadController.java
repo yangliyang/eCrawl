@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 public class DownloadController {
-	private static final String PATH = "F:\\images\\zips\\";
+	private static final String PATH = "\\images\\zips\\";
 	@RequestMapping("/download")
 	public void download(HttpServletResponse res){
 		String fileName = "imageSet.zip";
