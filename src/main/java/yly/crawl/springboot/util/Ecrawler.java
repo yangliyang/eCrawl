@@ -107,8 +107,8 @@ public class Ecrawler {
 	private static final String AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
 	private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
 	private static final int DEFAULT_TIMEOUT = 30000;//30s的超时检测
-	private static final String ROOT_PATH = "\\images\\";
-	private static final String ZIP_PATH = ROOT_PATH + "zips\\";
+	private static final String ROOT_PATH = "images/";
+	private static final String ZIP_PATH = ROOT_PATH + "zips/";
 	
 	public  CloseableHttpResponse getResponse(String url, int refreshTime, int timeout, int sleep) {
 		
@@ -483,6 +483,7 @@ public class Ecrawler {
 		String dirName = ROOT_PATH + title;
 		
 		File destDir = new File(dirName);
+		System.out.println(destDir.getAbsolutePath());
 		if(!destDir.isDirectory()){
 			destDir.mkdirs();
 		}
@@ -492,7 +493,9 @@ public class Ecrawler {
 		List<Image> failedList = imageList; //将第一次视为第0次失败
 		while( !(failedList.size() == 0 || reDownload < 0) ){
 			failedList = downloadFailed(dirName, failedList);
-			sendMessage("失败的集合："+failedList.toString()+"\n开始第"+(4-reDownload)+"次下载失败列表：");
+			if(failedList!=null && failedList.size()!=0){
+				sendMessage("失败的集合："+failedList.toString()+"\n开始第"+(4-reDownload)+"次下载失败列表：");
+			}
 			reDownload --;
 		}
 		
@@ -529,7 +532,7 @@ public class Ecrawler {
 		String imageUrl = "";
 		List<Image> failedList2 = new ArrayList<>();
 		for(Image image:failedList){
-			fileName = dirName+"\\"+image.getSerialNum()+"."+image.getSuffix();
+			fileName = dirName+"/"+image.getSerialNum()+"."+image.getSuffix();
 			imageUrl = image.getUrl();
 			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_TIMEOUT, 2000);
 			if(null == res || res.getStatusLine().getStatusCode()==403){

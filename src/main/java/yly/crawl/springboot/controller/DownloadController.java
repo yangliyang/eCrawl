@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 @Controller
 public class DownloadController {
-	private static final String PATH = "\\images\\zips\\";
+	private static final String PATH = "images/zips/";
 	@RequestMapping("/download")
 	public void download(HttpServletResponse res){
 		String fileName = "imageSet.zip";
@@ -36,7 +36,8 @@ public class DownloadController {
 	        i = bis.read(buff);
 	      }
 	    } catch (IOException e) {
-	      e.printStackTrace();
+	      //e.printStackTrace();浏览器强行关闭连接（打开下载工具等）
+	    	System.out.println("打开了下载工具！");
 	    } finally {
 	      if (bis != null) {
 	        try {
