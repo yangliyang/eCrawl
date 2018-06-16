@@ -1,22 +1,9 @@
 package yly.crawl.springboot.websocket;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -25,23 +12,12 @@ import javax.websocket.OnOpen;
 import javax.websocket.Session;
 import javax.websocket.server.ServerEndpoint;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import yly.crawl.springboot.dao.GalleryDAO;
 import yly.crawl.springboot.dao.ImageDAO;
-import yly.crawl.springboot.pojo.Gallery;
-import yly.crawl.springboot.pojo.Image;
-import yly.crawl.springboot.util.CloseUtil;
 import yly.crawl.springboot.util.Ecrawler;
-import yly.crawl.springboot.util.ZipUtil;
 
 /**
  * 默认的实现，AutoWired注入失败，猜测是因为@ServerEndpoint管理了，不归spring了

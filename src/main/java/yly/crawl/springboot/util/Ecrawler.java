@@ -110,6 +110,7 @@ public class Ecrawler {
 	private static final String ROOT_PATH = "images/";
 	private static final String ZIP_PATH = ROOT_PATH + "zips/";
 	
+	@SuppressWarnings("static-access")
 	public  CloseableHttpResponse getResponse(String url, int refreshTime, int timeout, int sleep) {
 		
 		int sleepMills = (int)(Math.random()*sleep+1000);
@@ -356,7 +357,7 @@ public class Ecrawler {
 	 */
 	private  String getFocusInner(String outerHtml, int focus ){
 		String url = "";
-		String pattern = "a href=\"(https://exhentai.org/s/[\\d\\D]*?-"+focus+")";
+		String pattern = "a href=\"(https://[A-Za-z0-9/.]+?-"+focus+")";
 		Pattern r = Pattern.compile(pattern);
 		Matcher m = r.matcher(outerHtml);
 		
@@ -473,6 +474,7 @@ public class Ecrawler {
 	public void exDownloadWithDatabase(String url, int begin, int end){
 		Map<String, Object> infoMap = getInfoMap(url, begin, end);
 		Gallery gallery = (Gallery) infoMap.get("gallery");
+		@SuppressWarnings("unchecked")
 		List<Image> imageList = (List<Image>) infoMap.get("imageList");
 		/**
 		 * infoMap中直接下载
