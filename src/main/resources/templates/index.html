@@ -57,11 +57,36 @@
 	    }
 
 	    //将消息显示在网页上
+	    total = 0;
+	    scale = 0.0;
+	    now = 0.0;
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
 	    	var scrollTop = $("#show_message")[0].scrollHeight;  
             $("#show_message").scrollTop(scrollTop);  
+            
+            if(msg.indexOf("下载总长度") != -1){
+            	total = Number(getNumber(msg));
+            	scale = 100.0/total;
+            }
+            if(msg.indexOf("下载成功")!=-1){
+            	process = $("#process_success");
+            	now += scale;
+            	if(now>100){
+            		now = 100;
+            	}
+            	nowInt = Math.floor(now);
+            	process.text(nowInt+"%");
+            	process.attr("style","width:"+nowInt+"%;margin:0;");
+            }
 	    	if(msg=='complete\n'){
+	    		success = Math.floor(now);
+	    		if(success<100){
+	    			failed = $("#process_failed");
+	    			failedNum = 100 - success;
+	    			failed.text(failedNum+"%");
+	    			failed.attr("style","width:"+failedNum+"%;margin:0;");
+	    		}
 	    		$('#download').show();
 	    	}
 			$("#show_message").val(show + msg);
@@ -75,7 +100,7 @@
 	    //发送消息
 	    
 	    function send(){
-	    	$("#download").hide();
+	    	init();
 	    	var url = $('#url').val();
 			var begin = $('#begin').val();
 			var end = $('#end').val();
@@ -95,9 +120,22 @@
 		function clear_text(){
 			$("#show_message").val("");
 		}
-	
+		//获取字符串中的数字
+		function getNumber(msg){
+			return msg.replace(/[^0-9]/ig,"");
+		}
 
-
+		//init
+		function init(){
+			$("#download").hide();
+	    	$("#process_success").attr("style","width:0%;margin:0;");
+	    	$("#process_success").text("0%");
+	    	$("#process_failed").text("0%");
+	    	$("#process_failed").attr("style","width:0%;margin:0;");
+	    	total = 0;
+		    scale = 0.0;
+		    now = 0.0;
+		}
 		
 		
 	
@@ -107,7 +145,7 @@
 	
 	</head>
 	<body>
-		<div style='width:800px;margin:0 auto;height:100%;text-align:center'>
+		<div style='width:1000px;margin:0 auto;height:100%;text-align:center'>
 			<div class="page-header">
   				<h1>下载王<small>说明：结束为0表示全部</small></h1>
 			</div>
@@ -133,10 +171,17 @@
 				<a th:href='@{/download}'><button id="download" style="display:none"  class="btn btn-danger" >下载</button></a>
 			</div>
 			
-				
+			<div class="progress">
+	  			<div id="process_success" class="progress-bar progress-bar-success progress-bar-striped active"  style='width: 0%;'>
+	   			 0%
+	  			</div>
+	  			<div id="process_failed" class="progress-bar progress-bar-danger progress-bar-striped active"  style='width: 0%;'>
+	   			 0%
+	  			</div>
+			</div>
 			
 			<div style="height:100%">
-				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:50%;resize:none"></textarea>
+				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:45%;resize:none"></textarea>
 			</div>
 		</div>
 		

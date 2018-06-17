@@ -106,12 +106,13 @@ public class Ecrawler {
 	private static final String CONNECTION = "Keep-Alive";
 	private static final String AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
 	private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
-	private static final int DEFAULT_TIMEOUT = 30000;//30s的超时检测
+	private static final int DEFAULT_CONNECT_TIMEOUT = 10000;//10s建立连接的超时时间
+	private static final int DEFAULT_SOCKET_TIMEOUT = 60000;//60s的传输超时时间
 	private static final String ROOT_PATH = "images/";
 	private static final String ZIP_PATH = ROOT_PATH + "zips/";
 	
 	@SuppressWarnings("static-access")
-	public  CloseableHttpResponse getResponse(String url, int refreshTime, int timeout, int sleep) {
+	public  CloseableHttpResponse getResponse(String url, int refreshTime, int connectTimeout, int socketTimeout, int sleep) {
 		
 		int sleepMills = (int)(Math.random()*sleep+1000);
 		try {
@@ -126,7 +127,16 @@ public class Ecrawler {
 		if(!url.contains("exh")){
 			httpGet.removeHeaders("COOKIE");
 		}
-		RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(timeout).setConnectTimeout(timeout).build();
+		//ConnectTimeout为建立连接until 的超时时间，SocketTimeout为传输数据的超时时间
+		/**
+		 * getConnectTimeout() 
+		*  Determines the timeout in milliseconds until a connection is established.
+		*	getSocketTimeout() 
+		*	Defines the socket timeout (SO_TIMEOUT) in milliseconds, 
+		*	which is the timeout for waiting for data or, put differently, 
+		*	a maximum period inactivity between two consecutive data packets).
+		 */
+		RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(socketTimeout).setConnectTimeout(connectTimeout).build();
 		httpGet.setConfig(requestConfig);
 		//InputStream in = null;
 		CloseableHttpResponse response = null;
@@ -156,8 +166,9 @@ public class Ecrawler {
 	 * @
 	 */
 	public  CloseableHttpResponse getResponse(String url) {
-		
-		return getResponse(url, 3, DEFAULT_TIMEOUT, 2000);
+		final int times = 3;
+		final int sleepMs = 2000;
+		return getResponse(url, times, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, sleepMs);
 		
 	}
 	/**
@@ -480,7 +491,8 @@ public class Ecrawler {
 		 * infoMap中直接下载
 		 */
 		String title = gallery.getTitle();
-		sendMessage("开始下载："+title+"\n保存路径"+ROOT_PATH);
+		sendMessage("开始下载："+title);
+		sendMessage("下载总长度："+imageList.size());
 		title = getWindowsTitle(title);
 		String dirName = ROOT_PATH + title;
 		
@@ -536,7 +548,7 @@ public class Ecrawler {
 		for(Image image:failedList){
 			fileName = dirName+"/"+image.getSerialNum()+"."+image.getSuffix();
 			imageUrl = image.getUrl();
-			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_TIMEOUT, 2000);
+			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, 2000);
 			if(null == res || res.getStatusLine().getStatusCode()==403){
 				imageDAO.deleteById(imageUrl);
 				sendMessage("更新......");
