@@ -72,35 +72,45 @@ public class MyWebSocket {
      * @throws IOException */
     @OnMessage
     public void onMessage(String message, Session session)  {
-    	String[] info = message.split(",");
-    	String url = info[0];
-		  try {
-		   new URL(url);
-		  } catch (MalformedURLException e) {
-		   sendMessage("URL格式不正确！",session);
-		   e.printStackTrace();
-		   return;
-		  }
-		 int begin = 0;
-		 int end = 0;
-		 try{
-	  	   begin = Integer.parseInt(info[1]);
-	  	   end = Integer.parseInt(info[2]);
-	     }catch(NumberFormatException e){
-	  	   e.printStackTrace();
-	  	   sendMessage("不是数字或者太大！",session);
-	  	   return;
-	     }
-		 Ecrawler crawler = new Ecrawler(galleryDAO, imageDAO, session);
-		 try{
-			 crawler.exDownloadWithDatabase(url, begin, end);
-		}catch(Throwable e){
-			e.printStackTrace();
-			sendMessage("发生异常错误！", session);
-			
-			return;
-		}
-		sendMessage("complete", session);
+    	String cookie =null;
+    	String[] info = null;
+    	if(message.contains("cookie")){
+    		String[] cookieArry = message.split(",");
+    		if(cookieArry.length ==2 ){
+    			cookie = cookieArry[1];
+    		}
+    	}else{
+    		info = message.split(",");
+    		String url = info[0];
+	  		  try {
+	  		   new URL(url);
+	  		  } catch (MalformedURLException e) {
+	  		   sendMessage("URL格式不正确！",session);
+	  		   e.printStackTrace();
+	  		   return;
+	  		  }
+	  		 int begin = 0;
+	  		 int end = 0;
+	  		 try{
+	  	  	   begin = Integer.parseInt(info[1]);
+	  	  	   end = Integer.parseInt(info[2]);
+	  	     }catch(NumberFormatException e){
+	  	  	   e.printStackTrace();
+	  	  	   sendMessage("不是数字或者太大！",session);
+	  	  	   return;
+	  	     }
+	  		 Ecrawler crawler = new Ecrawler(galleryDAO, imageDAO, session);
+	  		 try{
+	  			 crawler.exDownloadWithDatabase(url, begin, end, cookie);
+	  		}catch(Throwable e){
+	  			e.printStackTrace();
+	  			sendMessage("发生异常错误！", session);
+	  			
+	  			return;
+	  		}
+	  		sendMessage("complete", session);
+    	}
+    	
 		
 //       String[] info = message.split(",");
 //       String url = info[0];

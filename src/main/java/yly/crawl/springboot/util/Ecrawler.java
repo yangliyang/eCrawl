@@ -100,7 +100,7 @@ public class Ecrawler {
 	/**
 	 * 我的cookie
 	 */
-	private static final String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92; yay=louder;  igneous=a5854c5a1; lv=1527562527-1527562527; s=e3a51d202; sk=qkpbkq4ifredzvkfr9a5ubuizu6";
+	private static  String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92; yay=louder;  igneous=a5854c5a1; lv=1527562527-1527562527; s=e3a51d202; sk=qkpbkq4ifredzvkfr9a5ubuizu6";
 	private static final String CODING = "gzip, deflate";
 	private static final String LANGUAGE = "zh-CN,zh;q=0.9";
 	private static final String CONNECTION = "Keep-Alive";
@@ -124,7 +124,7 @@ public class Ecrawler {
 		int total = refreshTime;
 		CloseableHttpClient client = HttpClients.createDefault();
 		HttpGet httpGet  = getRequest(url);
-		if(!url.contains("exh")){
+		if(!url.contains("ex")){
 			httpGet.removeHeaders("COOKIE");
 		}
 		//ConnectTimeout为建立连接until 的超时时间，SocketTimeout为传输数据的超时时间
@@ -482,7 +482,10 @@ public class Ecrawler {
 		return infoMap;
 	}
 	
-	public void exDownloadWithDatabase(String url, int begin, int end){
+	public void exDownloadWithDatabase(String url, int begin, int end, String cookie){
+		if(cookie!=null){
+			COOKIE = cookie;
+		}
 		Map<String, Object> infoMap = getInfoMap(url, begin, end);
 		Gallery gallery = (Gallery) infoMap.get("gallery");
 		@SuppressWarnings("unchecked")

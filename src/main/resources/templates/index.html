@@ -17,8 +17,28 @@
     
 	<link rel="stylesheet" type="text/css" href="/css/bootstrap/3.3.6/bootstrap.min.css" th:href="@{/css/bootstrap/3.3.6/bootstrap.min.css}"/>
 	<script src="/js/bootstrap.min.js" th:src="@{js/bootstrap.min.js}"></script>
-	<script>
+	<script th:inline="javascript">
+	window.onload=function(){
+		var cookie = [[${cookie}]];
+		
+		var sem = cookie.split(";");
 	
+		if(sem.length == 2){
+			var colon = sem[0].split(":");
+			
+			if(colon.length == 2){
+				var userId = colon[1];
+				
+				$("#user").text("用户："+userId);
+				
+				$("#logout").show();
+			}
+		}
+	};
+		
+			
+			
+			
 		 var websocket = null;
 
 	    //判断当前浏览器是否支持WebSocket
@@ -62,8 +82,7 @@
 	    now = 0.0;
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
-	    	var scrollTop = $("#show_message")[0].scrollHeight;  
-            $("#show_message").scrollTop(scrollTop);  
+	    	  
             
             if(msg.indexOf("下载总长度") != -1){
             	total = Number(getNumber(msg));
@@ -90,6 +109,8 @@
 	    		$('#download').show();
 	    	}
 			$("#show_message").val(show + msg);
+			var scrollTop = $("#show_message")[0].scrollHeight;  
+            $("#show_message").scrollTop(scrollTop);
 	    }
 
 	    //关闭连接
@@ -105,6 +126,7 @@
 			var begin = $('#begin').val();
 			var end = $('#end').val();
 			if(url && begin && end){
+				websocket.send("cookie,"+$("#cookie").text());
 				$("#show_message").val("");
 				var msg = url + ',' + begin + ',' + end;
 				websocket.send(msg);
@@ -136,7 +158,14 @@
 		    scale = 0.0;
 		    now = 0.0;
 		}
-		
+		function goDown(){
+			var scrollTop = $("#show_message")[0].scrollHeight;  
+            $("#show_message").scrollTop(scrollTop);
+		}
+		function goUp(){
+			$("#show_message").scrollTop(0);
+			console.log("1");
+		}
 		
 	
 	
@@ -145,10 +174,17 @@
 	
 	</head>
 	<body>
-		<div style='width:1000px;margin:0 auto;height:100%;text-align:center'>
+		<div style='width:1000px;margin:0 auto;height:80%;text-align:center'>
+			<div style="display:none;float:right" id="logout">
+			
+				<span class="text-primary" id="user"></span>
+				<a href="/logout"><button class="btn btn_danger">登出</button></a>
+			</div>
 			<div class="page-header">
   				<h1>下载王<small>说明：结束为0表示全部</small></h1>
+  				
 			</div>
+			
 			<div class="input-group">
 				  <span class="input-group-addon" id="basic-addon1">地址</span>
 				  <input id="url" type="text" class="form-control" placeholder="https://..." aria-describedby="basic-addon1"/>
@@ -180,11 +216,16 @@
 	  			</div>
 			</div>
 			
-			<div style="height:100%">
-				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:45%;resize:none"></textarea>
+			<div >
+				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:400px;resize:none"></textarea>
 			</div>
+			
+			<span id="cookie"  th:text="${cookie}" style="display:none"></span>
 		</div>
-		
-	
+		<div style="position: relative;left:1220px;top: -390px;">
+		<div ><img src="/down.png" onclick="goDown()" style="cursor:pointer;border:1px dashed #666666;"/></div>
+		<div style="height:250px"></div>
+		<div ><img src="/up.png" onclick="goUp()" style="cursor:pointer;border:1px dashed #666666;"/></div>
+		</div>
 	</body>
 </html>
