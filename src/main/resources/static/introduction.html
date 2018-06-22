@@ -1,0 +1,38 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org">
+	<head>
+	 <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+	<title>eDownload</title>
+	</head>
+	<body >
+		<h1 style="text-align:center;">使用说明</h1>
+		<hr/>
+		<div style="width:400px;margin:0 auto;font-family: 楷体;font-size: 20px;line-height:30px">
+		<ul>
+		
+		<li>登录：输入账号和密码。之所以设置登录，
+		一是因为最好不用我的信息，二是如果没有账号的话，那下载的地址也无法获知了。</li>
+		
+		<li>下载：【地址】输入为图集的地址：格式为https://*/g/*/*/
+		，一般直接复制即可得到。</li>
+		
+		<li>【开始】输入为要下载的图集的开始，一般输入一个大于0小于2147483648的整数。
+		大于上限的数字会直接异常，小于下限的数字会设置为1。默认为1，1代表从第一张开始。
+		</li>
+		
+		<li>
+		【结束】输入为结束的位置，输入限制同【开始】。默认为0，0代表结束位置为最后一张。
+		</li>
+		
+		<li>
+		下载的范围为[开始，结束]，一般异常输入如结束大于开始，则默认为下载全部。
+		</li>
+		<li>
+		其它信息可以通过按钮下方的滚屏文本区域查看，如进度信息、错误信息、操作提示等。
+		</li>
+		</ul>
+		</div>
+	</body>
+	
+</html>
+	

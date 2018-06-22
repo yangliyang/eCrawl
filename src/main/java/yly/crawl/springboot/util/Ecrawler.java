@@ -16,7 +16,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -100,7 +99,7 @@ public class Ecrawler {
 	/**
 	 * 我的cookie
 	 */
-	private static final String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92; yay=louder;  igneous=a5854c5a1; lv=1527562527-1527562527; s=e3a51d202; sk=qkpbkq4ifredzvkfr9a5ubuizu6";
+	private static  String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92; yay=louder;  igneous=a5854c5a1; lv=1527562527-1527562527; s=e3a51d202; sk=qkpbkq4ifredzvkfr9a5ubuizu6";
 	private static final String CODING = "gzip, deflate";
 	private static final String LANGUAGE = "zh-CN,zh;q=0.9";
 	private static final String CONNECTION = "Keep-Alive";
@@ -425,7 +424,7 @@ public class Ecrawler {
 		String serialId = getSerialId(url);
 		gallery.setSerialId(serialId);
 		gallery.setGmtCreate(new Date());
-	
+		gallery.setGmtModified(new Date());
 		this.galleryDAO.save(gallery);
 		
 		
@@ -467,6 +466,7 @@ public class Ecrawler {
 			image.setSuffix(suffix);
 			image.setUrl(imageUrl);
 			image.setGmtCreate(new Date());
+			image.setGmtModified(new Date());
 			this.imageDAO.save(image);
 			imageList.add(image);
 			
@@ -482,7 +482,11 @@ public class Ecrawler {
 		return infoMap;
 	}
 	
-	public void exDownloadWithDatabase(String url, int begin, int end){
+	public void exDownloadWithDatabase(String url, int begin, int end, String cookie){
+		sendMessage("初始化.......");
+		if(cookie!=null){
+			COOKIE = cookie;
+		}
 		Map<String, Object> infoMap = getInfoMap(url, begin, end);
 		Gallery gallery = (Gallery) infoMap.get("gallery");
 		@SuppressWarnings("unchecked")
@@ -550,11 +554,12 @@ public class Ecrawler {
 			imageUrl = image.getUrl();
 			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, 2000);
 			if(null == res || res.getStatusLine().getStatusCode()==403){
-				imageDAO.deleteById(imageUrl);
+				//imageDAO.deleteById(imageUrl);
 				sendMessage("更新......");
 				String innerHtml = getHtml(image.getInnerUrl());
 				imageUrl = getImageUrl(innerHtml);
 				image.setUrl(imageUrl);
+				image.setGmtModified(new Date());
 				imageDAO.save(image);
 			}
 			if(downloadImage(imageUrl, fileName)){
@@ -575,8 +580,15 @@ public class Ecrawler {
 	 */
 	private Map<String, Object> getInfoMap(String url, int begin, int end){
 		String serialId = getSerialId(url);
-		Optional<Gallery> galleryOptional = galleryDAO.findById(serialId);
-		Gallery gallery = galleryOptional.orElse(null);
+		 
+		List<Gallery> galleryList = galleryDAO.findBySerialId(serialId);
+		if(galleryList==null || galleryList.size()>1){
+			System.out.println("数据库错误了！");
+		}
+		Gallery gallery = null;
+		if(galleryList.size()==1){
+			gallery = galleryList.get(0);
+		}
 		if(gallery == null){
 			
 			return exDownloadOuter(url, begin, end);

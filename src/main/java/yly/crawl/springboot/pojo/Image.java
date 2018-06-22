@@ -4,18 +4,25 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
  
 @Entity //表示是实体类
-@Table(name = "image") //对应的表名
+@Table(name = "image",uniqueConstraints = {@UniqueConstraint(columnNames={"gallery_id", "serial_num"})}) //对应的表名
 public class Image {
  
 //    @Id //主键标识
 //    @GeneratedValue(strategy = GenerationType.IDENTITY) //自增长方式
 //    @Column(name = "id") //数据库字段名（属性、列名）
 //    private Integer id;
-    @Id 
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
+    
     @Column(name = "url")
     private String url;
     
@@ -34,6 +41,9 @@ public class Image {
     @Column(name = "inner_url")
     private String innerUrl;
 
+    @Column(name = "gmt_modified")
+    private Date gmtModified;
+    
 	public String getInnerUrl() {
 		return innerUrl;
 	}
@@ -91,6 +101,22 @@ public class Image {
 		return galleryId+"/"+serialNum;
 	}
 
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Date getGmtModified() {
+		return gmtModified;
+	}
+
+	public void setGmtModified(Date gmtModified) {
+		this.gmtModified = gmtModified;
+	}
+	
     
     
     

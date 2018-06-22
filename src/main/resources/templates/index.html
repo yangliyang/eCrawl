@@ -9,61 +9,79 @@
 		div{
 			margin:10px;
 		}
-		html,body{
-			height:100%;
-		}
+		
 	</style>
     <script type="text/javascript" src="/js/jquery.min.js" th:src="@{/js/jquery.min.js}"></script>
     
 	<link rel="stylesheet" type="text/css" href="/css/bootstrap/3.3.6/bootstrap.min.css" th:href="@{/css/bootstrap/3.3.6/bootstrap.min.css}"/>
 	<script src="/js/bootstrap.min.js" th:src="@{js/bootstrap.min.js}"></script>
-	<script>
+	<script th:inline="javascript">
+	window.onload=function(){
+		var cookie = [[${cookie}]];
+		
+		var sem = cookie.split(";");
 	
+		if(sem.length == 2){
+			var colon = sem[0].split(":");
+			
+			if(colon.length == 2){
+				var userId = colon[1];
+				
+				$("#user").text("用户："+userId);
+				
+				$("#logout").show();
+			}
+		}
+	};
 		 var websocket = null;
 
 	    //判断当前浏览器是否支持WebSocket
 	    if('WebSocket' in window){
 	        websocket = new WebSocket("ws://localhost:80/websocket");
+	        init_websocket(websocket);
 	    }
 	    else{
 	        alert('Not support websocket')
 	    }
+		function init_websocket(websocket){
+			//连接发生错误的回调方法
+		    websocket.onerror = function(){
+		        setMessageInnerHTML("error");
+		    };
 
-	    //连接发生错误的回调方法
-	    websocket.onerror = function(){
-	        setMessageInnerHTML("error");
-	    };
+		    //连接成功建立的回调方法
+		    websocket.onopen = function(event){
+		    	
+		    }
 
-	    //连接成功建立的回调方法
-	    websocket.onopen = function(event){
-	    	
-	    }
+		    //接收到消息的回调方法
+		    websocket.onmessage = function(event){
+		        setMessageInnerHTML(event.data);
+		    }
 
-	    //接收到消息的回调方法
-	    websocket.onmessage = function(event){
-	        setMessageInnerHTML(event.data);
-	    }
+		    //连接关闭的回调方法
+		    websocket.onclose = function(){
+		        //setMessageInnerHTML("close");
+		        setMessageInnerHTML("连接已断开！请刷新浏览器或点击重新连接！\n");
+		        $('#conn').show();
+		    }
 
-	    //连接关闭的回调方法
-	    websocket.onclose = function(){
-	        //setMessageInnerHTML("close");
-	        setMessageInnerHTML("连接已断开！请刷新浏览器或点击重新连接！\n");
-	        $('#conn').show();
-	    }
-
-	    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
-	    window.onbeforeunload = function(){
-	        websocket.close();
-	    }
+		    //监听窗口关闭事件，当窗口关闭时，主动去关闭websocket连接，防止连接还没断开就关闭窗口，server端会抛异常。
+		    window.onbeforeunload = function(){
+		        websocket.close();
+		    }
+		}
+		
+	    
 
 	    //将消息显示在网页上
 	    total = 0;
-	    scale = 0.0;
+	    
 	    now = 0.0;
+	    success_num = 0;
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
-	    	var scrollTop = $("#show_message")[0].scrollHeight;  
-            $("#show_message").scrollTop(scrollTop);  
+	    	
             
             if(msg.indexOf("下载总长度") != -1){
             	total = Number(getNumber(msg));
@@ -71,7 +89,8 @@
             }
             if(msg.indexOf("下载成功")!=-1){
             	process = $("#process_success");
-            	now += scale;
+            	success_num++;
+            	now = success_num * 1.0 *100 / total;
             	if(now>100){
             		now = 100;
             	}
@@ -90,6 +109,8 @@
 	    		$('#download').show();
 	    	}
 			$("#show_message").val(show + msg);
+			var scrollTop = $("#show_message")[0].scrollHeight;  
+            $("#show_message").scrollTop(scrollTop);  
 	    }
 
 	    //关闭连接
@@ -114,6 +135,7 @@
 	    }
 	    function connect(){
 	    	websocket = new WebSocket("ws://localhost:80/websocket");
+	    	init_websocket(websocket);
 	    	setMessageInnerHTML("重连成功！\n")
 	    	$('#conn').hide();
 	    }
@@ -133,11 +155,19 @@
 	    	$("#process_failed").text("0%");
 	    	$("#process_failed").attr("style","width:0%;margin:0;");
 	    	total = 0;
-		    scale = 0.0;
+		    
 		    now = 0.0;
+		    success_num = 0;
 		}
 		
-		
+		function goDown(){
+			var scrollTop = $("#show_message")[0].scrollHeight;  
+            $("#show_message").scrollTop(scrollTop);
+		}
+		function goUp(){
+			$("#show_message").scrollTop(0);
+			
+		}
 	
 	
 	
@@ -145,7 +175,12 @@
 	
 	</head>
 	<body>
-		<div style='width:1000px;margin:0 auto;height:100%;text-align:center'>
+		<div style='width:1000px;margin:0 auto;text-align:center'>
+			<div style="display:none;float:right" id="logout">
+			
+				<span class="text-primary" id="user"></span>
+				<a href="/logout"><button class="btn btn_danger">登出</button></a>
+			</div>
 			<div class="page-header">
   				<h1>下载王<small>说明：结束为0表示全部</small></h1>
 			</div>
@@ -180,11 +215,22 @@
 	  			</div>
 			</div>
 			
-			<div style="height:100%">
-				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:45%;resize:none"></textarea>
+			<div  style="position: relative;">
+				<textarea id="show_message" class="form-control" readonly="readonly" style="background-color:transparent;height:400px;resize:none;"></textarea>
+				<div style="position: absolute;left:970px;top:-20px">
+					<div ><img src="/image/down.png" onclick="goDown()" style="cursor:pointer;border:1px dashed #666666;"/></div>
+					<div style="height:260px"></div>
+					<div ><img src="/image/up.png" onclick="goUp()" style="cursor:pointer;border:1px dashed #666666;"/></div>
+				</div>
 			</div>
+			
+			<span id="cookie"  th:text="${cookie}" style="display:none"></span>
 		</div>
 		
 	
 	</body>
+	<div style="text-align:center">
+		<div th:replace="include::footer1" ></div>
+		<div th:replace="include::footer2" ></div>
+	</div>
 </html>

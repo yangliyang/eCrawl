@@ -4,6 +4,8 @@ import java.util.Date;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.Table;
  
@@ -19,10 +21,13 @@ public class Gallery {
     @Column(name = "url")
     private String url;
     
-    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+	@Column(name = "id")
+	private Long id;
 	
-	@Id
-	@Column(name = "serial_id")
+	
+	@Column(name = "serial_id",unique=true)
     private String serialId;
     
     @Column(name = "title")
@@ -33,7 +38,13 @@ public class Gallery {
     
     @Column(name = "gmt_create")
     private Date gmtCreate;
+    
+    @Column(name = "gmt_modified")
+    private Date gmtModified;
+	
+	
 
+	
 
 	public Integer getLenth() {
 		return lenth;
@@ -76,7 +87,21 @@ public class Gallery {
 	public void setGmtCreate(Date gmtCreate) {
 		this.gmtCreate = gmtCreate;
 	}
-    
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public Date getGmtModified() {
+		return gmtModified;
+	}
+
+	public void setGmtModified(Date gmtModified) {
+		this.gmtModified = gmtModified;
+	}
     
     
     
