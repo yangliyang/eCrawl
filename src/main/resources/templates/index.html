@@ -37,7 +37,7 @@
 
 	    //判断当前浏览器是否支持WebSocket
 	    if('WebSocket' in window){
-	        websocket = new WebSocket("ws://localhost:80/websocket");
+	        websocket = new WebSocket("ws://"+[[${localhost}]]+":80/websocket");
 	        init_websocket(websocket);
 	    }
 	    else{
@@ -76,12 +76,15 @@
 
 	    //将消息显示在网页上
 	    total = 0;
-	    
+	    title="";
 	    now = 0.0;
 	    success_num = 0;
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
-	    	
+	    	if(msg.indexOf("zipFileName")!=-1){
+	    		title = msg.split(",")[1];
+	    		return;
+	    	}
             
             if(msg.indexOf("下载总长度") != -1){
             	total = Number(getNumber(msg));
@@ -134,7 +137,7 @@
 			}
 	    }
 	    function connect(){
-	    	websocket = new WebSocket("ws://localhost:80/websocket");
+	    	websocket = new WebSocket("ws://"+[[${localhost}]]+":80/websocket");
 	    	init_websocket(websocket);
 	    	setMessageInnerHTML("重连成功！\n")
 	    	$('#conn').hide();
@@ -155,7 +158,7 @@
 	    	$("#process_failed").text("0%");
 	    	$("#process_failed").attr("style","width:0%;margin:0;");
 	    	total = 0;
-		    
+		    title = "";
 		    now = 0.0;
 		    success_num = 0;
 		}
@@ -168,7 +171,9 @@
 			$("#show_message").scrollTop(0);
 			
 		}
-	
+		function download(){
+			window.open("/download?title="+title);
+		}
 	
 	
 	</script>
@@ -203,7 +208,8 @@
 				<button onclick="send()" class="btn btn-primary">开始</button>
 				<button id="conn"  onclick="connect()" class="btn btn-primary" style="display:none">重新连接</button>
 				<button onclick="clear_text()" class="btn btn-primary">清空滚屏</button>
-				<a th:href='@{/download}'><button id="download" style="display:none"  class="btn btn-danger" >下载</button></a>
+				<button id="download" style="display:none" onclick="download()" class="btn btn-danger" >下载</button>
+				
 			</div>
 			
 			<div class="progress">

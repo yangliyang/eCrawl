@@ -495,9 +495,13 @@ public class Ecrawler {
 		 * infoMap中直接下载
 		 */
 		String title = gallery.getTitle();
-		sendMessage("开始下载："+title);
-		sendMessage("下载总长度："+imageList.size());
+		
+		sendMessage("开始下载:"+title);
 		title = getWindowsTitle(title);
+		String zipFileName = gallery.getSerialId();
+		sendMessage("zipFileName,"+zipFileName);
+		sendMessage("下载总长度："+imageList.size());
+		
 		String dirName = ROOT_PATH + title;
 		
 		File destDir = new File(dirName);
@@ -525,7 +529,7 @@ public class Ecrawler {
 		if(!zipDir.exists()){
 			zipDir.mkdirs();
 		}
-		File zipFile = new File(ZIP_PATH + "imageSet.zip");
+		File zipFile = new File(ZIP_PATH + zipFileName +".zip");
 		if(zipFile.exists()){
 			zipFile.delete();
 		}
@@ -726,5 +730,14 @@ public class Ecrawler {
 		}
 		return SerialId;
 	}
-	
+	/**
+	 * 获取url标准的title
+	 * @param title
+	 * @return
+	 */
+//	private String getStandardUrlTitle(String title){
+//		//保留字符 ! * ’ ( ) ; : @ & = + $ , / ? # [ ]
+//		String regex="[^a-zA-Z0-9-_.~]";
+//		return title.replaceAll(regex, "");
+//	}
 }

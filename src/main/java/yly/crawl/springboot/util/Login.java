@@ -39,7 +39,7 @@ public class Login {
 	private static final boolean PROXY = true;	//默认使用代理
 	private static final String CODING = "utf8";	//默认编码utf8
 	private static final String PROXY_HOST = "127.0.0.1";
-	private static final int PROXY_PORT = 1080;
+	private static final int PROXY_PORT = 8188;
 	private static final int CONNECT_TIMEOUT = 10000;
 	private static final String SUCCESS_FLAG = "Thanks";
 	private static final String MEMBER = "ipb_member_id";
