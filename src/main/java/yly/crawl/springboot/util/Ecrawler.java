@@ -10,12 +10,16 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
-import java.util.Hashtable;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Optional;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -23,6 +27,7 @@ import javax.websocket.Session;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -45,8 +50,22 @@ public class Ecrawler {
 	private  GalleryDAO galleryDAO;
 	
 	private  ImageDAO imageDAO;
-	
-
+	/**
+	 * 我的cookie
+	 */
+	private String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92";
+	private static final String DEFAULT_CHARSET = "utf8";
+	private static final String STR404 = "Key missing, or incorrect key provided.";
+	private static final String STR4042 = "No gallery specified.";
+	private static final String CODING = "gzip, deflate";
+	private static final String LANGUAGE = "zh-CN,zh;q=0.9";
+	private static final String CONNECTION = "Keep-Alive";
+	private static final String AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+	private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
+	private static final int DEFAULT_CONNECT_TIMEOUT = 10000;//10s建立连接的超时时间
+	private static final int DEFAULT_SOCKET_TIMEOUT = 60000;//60s的传输超时时间
+	private static final String ROOT_PATH = "images/";
+	private static final String ZIP_PATH = "zips/";
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
     private Session session;
 
@@ -64,28 +83,21 @@ public class Ecrawler {
 	 */
 
     public void sendMessage(String message)  {
-        try {
-			this.session.getBasicRemote().sendText(message+"\n");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        //this.session.getAsyncRemote().sendText(message);
+    	if(session!=null && session.isOpen()){
+	    	synchronized(this.session){
+		        try {
+					this.session.getBasicRemote().sendText(message+"\n");
+				} catch (IOException e) {
+					System.out.println("浏览器强制断开！");
+				}
+	    	}
+    	}else{
+    		System.out.println(message);
+    	}
     }
 
 
-//    /**
-//     * 群发自定义消息
-//     * */
-//    public static void sendInfo(String message) throws IOException {
-//        for (MyWebSocket item : webSocketSet) {
-//            try {
-//                item.sendMessage(message);
-//            } catch (IOException e) {
-//                continue;
-//            }
-//        }
-//    }
+
 
 
     
@@ -96,36 +108,28 @@ public class Ecrawler {
 	 * 需要的方法...
 	 * 
 	 */
-	/**
-	 * 我的cookie
-	 */
-	private static  String COOKIE = "ipb_member_id=2798962; ipb_pass_hash=24576fff1f871b0feff9c4fbfeba4d92; yay=louder;  igneous=a5854c5a1; lv=1527562527-1527562527; s=e3a51d202; sk=qkpbkq4ifredzvkfr9a5ubuizu6";
-	private static final String CODING = "gzip, deflate";
-	private static final String LANGUAGE = "zh-CN,zh;q=0.9";
-	private static final String CONNECTION = "Keep-Alive";
-	private static final String AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
-	private static final String ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8";
-	private static final int DEFAULT_CONNECT_TIMEOUT = 10000;//10s建立连接的超时时间
-	private static final int DEFAULT_SOCKET_TIMEOUT = 60000;//60s的传输超时时间
-	private static final String ROOT_PATH = "images/";
-	private static final String ZIP_PATH = ROOT_PATH + "zips/";
 	
-	@SuppressWarnings("static-access")
-	public  CloseableHttpResponse getResponse(String url, int refreshTime, int connectTimeout, int socketTimeout, int sleep) {
+	
+	/**
+	 * 获取response, response 必须关闭
+	 * @param url
+	 * @param refreshTime
+	 * @param connectTimeout
+	 * @param socketTimeout
+	 * @param sleep
+	 * @return
+	 */
+	public CloseableHttpResponse getResponse(String url, int refreshTime, int connectTimeout, int socketTimeout, int sleep) {
 		
 		int sleepMills = (int)(Math.random()*sleep+1000);
 		try {
-			Thread.currentThread().sleep(sleepMills);
+			Thread.sleep(sleepMills);
 		} catch (InterruptedException e1) {
 			e1.printStackTrace();
 		}
-		//int refreshTime = 3; //3次重连机会
-		int total = refreshTime;
 		CloseableHttpClient client = HttpClients.createDefault();
 		HttpGet httpGet  = getRequest(url);
-		if(!url.contains("exh")){
-			httpGet.removeHeaders("COOKIE");
-		}
+
 		//ConnectTimeout为建立连接until 的超时时间，SocketTimeout为传输数据的超时时间
 		/**
 		 * getConnectTimeout() 
@@ -135,9 +139,8 @@ public class Ecrawler {
 		*	which is the timeout for waiting for data or, put differently, 
 		*	a maximum period inactivity between two consecutive data packets).
 		 */
-		RequestConfig requestConfig = RequestConfig.custom().setSocketTimeout(socketTimeout).setConnectTimeout(connectTimeout).build();
+		RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.IGNORE_COOKIES).setSocketTimeout(socketTimeout).setConnectTimeout(connectTimeout).build();
 		httpGet.setConfig(requestConfig);
-		//InputStream in = null;
 		CloseableHttpResponse response = null;
 		while(refreshTime>0 && response==null){
 			try {
@@ -146,9 +149,6 @@ public class Ecrawler {
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
-				//超时等情况
-				sendMessage("网络连接超时，开始尝试第 "+ (total + 1 - refreshTime)+"次重连");
-				//e.printStackTrace();
 				CloseUtil.close(response);
 			}
 
@@ -157,7 +157,7 @@ public class Ecrawler {
 		return response;
 	}
 	/**
-	 * 获取网页内容的输入流，最后没关response..,有时间改成返回response
+	 * 默认获取response
 	 * In order to ensure correct deallocation of system resources
      * the user MUST call CloseableHttpResponse#close() from a finally clause.
 	 * @param url
@@ -166,12 +166,12 @@ public class Ecrawler {
 	 */
 	public  CloseableHttpResponse getResponse(String url) {
 		final int times = 3;
-		final int sleepMs = 2000;
+		final int sleepMs = 0;
 		return getResponse(url, times, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, sleepMs);
 		
 	}
 	/**
-	 * 默认utf8了
+	 * 获取html，默认utf8了
 	 * @param url
 	 * @return
 	 * @
@@ -187,13 +187,19 @@ public class Ecrawler {
 			sendMessage("不存在的错误的地址！");
 			return null;
 		}
+		
 		HttpEntity entity = response.getEntity();
+		
+		String charset = getCharset(entity.getContentType().getValue());
+		if(charset==null){
+			charset = DEFAULT_CHARSET;
+		}
 		InputStream in = null;
 		BufferedReader br = null;
 		StringBuffer sb = new StringBuffer();
 		try {
 			in = entity.getContent();
-			br = new BufferedReader(new InputStreamReader(in, "utf8"));
+			br = new BufferedReader(new InputStreamReader(in, charset));
 			String line = null;
 			while(null!=(line = br.readLine())){
 				sb.append(line+"\n");
@@ -211,7 +217,7 @@ public class Ecrawler {
 	 * @param html
 	 * @return
 	 */
-	public  String getOriginalTitle(String html){
+	private  String getOriginalTitle(String html){
 		String pattern = "<title>([\\d\\D]*)</title>";
 		Pattern r = Pattern.compile(pattern);
 		Matcher m = r.matcher(html);
@@ -226,7 +232,7 @@ public class Ecrawler {
 	 * @param title
 	 * @return
 	 */
-	public  String getWindowsTitle(String title){
+	private  String getWindowsTitle(String title){
 		//9种字符不能出现在windows文件命名中
 		String[] limit = {"<", ">", "/", "\\", "|", "\"", "*", "?", ":"};
 		for(String s:limit){
@@ -245,7 +251,7 @@ public class Ecrawler {
 	 * @param pageHtml
 	 * @return
 	 */
-	public  int getLenth(String pageHtml){
+	private  int getLenth(String pageHtml){
 		int lenth = 0;
 		String pattern = "(\\d*) pages";
 		Pattern r = Pattern.compile(pattern);
@@ -260,7 +266,7 @@ public class Ecrawler {
 	 * 从imageHtml里获得图片Url
 	 * @param imageHtml
 	 */
-	public  String getImageUrl(String imageHtml){
+	private  String getImageUrl(String imageHtml){
 		String url = "";
 		String pattern = "img id=\"img\" src=\"([\\d\\D]*?)\"";
 		Pattern r = Pattern.compile(pattern);
@@ -271,18 +277,28 @@ public class Ecrawler {
 		}
 		return url;
 	}
+	
 	/**
 	 * 下载图片
 	 * @param url
 	 * @param file
 	 * @
 	 */
-	public  boolean downloadImage(String url, String file) {
+	private  boolean downloadImage(String url, String file) {
 		CloseableHttpResponse response = getResponse(url);
 		if(null == response){
 			return false;
 		}
+		if(response.getStatusLine().getStatusCode()!=200){
+			CloseUtil.close(response);
+			return false;
+		}
+		
 		HttpEntity entity = response.getEntity();
+		if(!entity.getContentType().getValue().contains("image")){
+			CloseUtil.close(response);
+			return false;
+		}
 		InputStream in = null;
 		FileOutputStream fos = null;
 		try {
@@ -298,8 +314,8 @@ public class Ecrawler {
 			e.printStackTrace();
 			return false;
 		} catch (IOException e) {
-			//e.printStackTrace(); //超时，读图片的时间超过了指定的时间阈值
-			sendMessage("网速慢或者图片资源问题导致的超时！");
+			 //超时，读图片的时间超过了指定的时间阈值
+			//网速慢或者图片资源问题导致的超时！
 			return false;
 		}finally{
 
@@ -310,11 +326,11 @@ public class Ecrawler {
 		return true;
 	}
 	/**
-	 * 根据图片uri，获得图片的类型（后缀）
+	 * 根据图片url，获得图片的类型（后缀）
 	 * @param imageUrl
 	 * @return
 	 */
-	public  String getSuffix(String imageUrl){
+	private  String getSuffix(String imageUrl){
 		String suffix = "";
 
 		String pattern = "[\\d\\D]+\\.([\\d\\D]*)";
@@ -327,13 +343,14 @@ public class Ecrawler {
 		return suffix;
 	}
 	/**
-	 * 从内部的html（即imageHtmll）获得
+	 * 从内部的html（即inner）获得
 	 * 0：当前页码
 	 * 1：总大小
 	 * @param innerHtml
 	 * @return
 	 */
-	public  int[] getInnerInfo(String innerHtml){
+	/*
+	private  int[] getInnerInfo(String innerHtml){
 		int[] info = new int[2];
 		String pattern = "<div><span>([\\d]*)</span> / <span>([\\d]*)</span></div>";
 		Pattern r = Pattern.compile(pattern);
@@ -343,13 +360,13 @@ public class Ecrawler {
 			info[1] = Integer.parseInt(m.group(2));
 		}
 		return info;
-	}
+	}*/
 	/**
 	 * 获得当前innerHtml的后继，如果没有，返回空串
 	 * @param innerHtml
 	 * @return
 	 */
-	public  String getNextUrl(String innerHtml){
+	private  String getNextUrl(String innerHtml){
 		String nextUrl = "";
 		String pattern = "<a id=\"next\"[\\d\\D]*?href=\"([\\d\\D]*?)\">";
 		
@@ -377,155 +394,309 @@ public class Ecrawler {
 		return url;	
 	}
 	/**
-	 * 从PageUrl下面下载一定数量的图
+	 * 并行扫描
 	 * @param url PageUrl
 	 * @param num 数量
 	 * @ 
 	 */
-	public  Map<String, Object> exDownloadOuter(String url, int begin, int end) {
-		//String outerHtml = getHtml(url);
-		//String firstInnerUrl = getFirstInner(outerHtml);
-		String startUrl = getStartUrl(url, begin);
-		int num = end - begin + 1;
-		return exDownloadInner(startUrl, num);//进入内部
+	private  List<Image> parallelScan(Gallery gallery, int begin, int end, List<Image> inImage, int degree) {
+		sendMessage("开始遍历要下载的图片的信息...");
+		String url = gallery.getUrl();
+		List<Integer> serialNumList = new ArrayList<>();
+		int size = inImage.size();
+		int cur = 0;
+		for(int i=begin;i<=end;i++){
+			if(cur<size && 
+					inImage.get(cur).getSerialNum().equals(i)){
+				cur++;
+				continue;
+			}
+			serialNumList.add(i);
+		}
+		
+		int length = serialNumList.size();
+		//length must greater than 0, so it's not necessary
+		if(length>0){
+			begin = serialNumList.get(0);
+		}
+		if(length<20){
+			String startUrl = getStartUrl(url, begin);
+			return scan(gallery, serialNumList, startUrl);
+		}
+		
+		List<Future<List<Image>>> futureList = new ArrayList<>(degree);
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(4, 8, 10, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+		int scale = length/degree;
+		int from = 0;
+		int to = 0;
+		
+		for(int i=0;i<degree;i++){
+			String startUrl = getStartUrl(url, serialNumList.get(from));
+			to = from + scale;
+			if(i == (degree-1)){
+				to = length;
+			}
+			futureList.add(executor.submit(getScanThread(gallery, serialNumList, from, to, startUrl)));
+			from = to;
+		}
+		executor.shutdown();
+		try {
+			executor.awaitTermination(2, TimeUnit.HOURS);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+		
+		
+		List<Image> image = new ArrayList<>();
+		for(Future<List<Image>> future:futureList){
+			try {
+				image.addAll(future.get());
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		return image;
+
 	}
 	/**
-	 * 从ImageUrl下面下载一定数量
+	 * 扫描列表中的图
 	 * @param url
 	 * @param num
 	 * @ 
 	 */
-	public Map<String, Object> exDownloadInner(String url, int num) {
-		Gallery gallery = new Gallery();
-		
-		String startInnerHtml = getHtml(url);
-		String title = getOriginalTitle(startInnerHtml);
-		//sendMessage("开始下载："+title+"\n保存路径"+ROOT_PATH);
-		//String dirName = ROOT_PATH + getWindowsTitle(title);
-		
-//		File destDir = new File(dirName);
-//		if(!destDir.isDirectory()){
-//			destDir.mkdirs();
-//		}
-		int[] pageInfo = getInnerInfo(startInnerHtml);
-		int currentPage = pageInfo[0];
-		int totalPage = pageInfo[1];
-		int lenth = totalPage - currentPage + 1;
-		if(lenth < num || num<=0){
-			num = lenth;
-		}
-		
-		/**
-		 * set区
-		 */
-		gallery.setUrl(getOuterUrl(startInnerHtml));
-		gallery.setTitle(title);
-		gallery.setLenth(totalPage);
-		String serialId = getSerialId(url);
-		gallery.setSerialId(serialId);
-		gallery.setGmtCreate(new Date());
-		gallery.setGmtModified(new Date());
-		this.galleryDAO.save(gallery);
+	private List<Image> scan(Gallery gallery, List<Integer> serialNumList, String startUrl ) {
 		
 		
-		
-		Map<Integer, String> imageUrlMap = new LinkedHashMap<>();
-		Map<Integer, String> innerUrlMap = new LinkedHashMap<>();
-		String currentUrl = url;
-		String currentHtml = null;
-		String currentImageUrl = null;
-		String nextUrl = null;
-		sendMessage("开始遍历要下载的图片的信息...");
-		//num++;//名字从一开始
-		for(int i=currentPage;i<num+currentPage;i++){
-			sendMessage("正在遍历第"+i+"张！");
-			currentHtml = getHtml(currentUrl);
-			currentImageUrl = getImageUrl(currentHtml);
-			innerUrlMap.put(i, currentUrl);
-			imageUrlMap.put(i, currentImageUrl);
-			nextUrl = getNextUrl(currentHtml);
-			if(nextUrl.equals("")){
-				break;
-			}
-			currentUrl = nextUrl;
-			
-		}
+		String galleryId = gallery.getSerialId();
+
 		List<Image> imageList = new ArrayList<>();
-		for(Entry<Integer, String> entry:imageUrlMap.entrySet()){
-			int key = entry.getKey();
-			Image image = new Image();
-			String imageUrl = entry.getValue();
-			String suffix = getSuffix(imageUrl);
-			//String fileName = dirName + "\\"+ key + "." + suffix;
-			/**
-			 * set区
-			 */
-			image.setInnerUrl(innerUrlMap.get(key));
-			image.setGalleryId(serialId);
-			image.setSerialNum(key);
-			image.setSuffix(suffix);
-			image.setUrl(imageUrl);
-			image.setGmtCreate(new Date());
-			image.setGmtModified(new Date());
-			this.imageDAO.save(image);
+		Image image = null;
+		for(int i : serialNumList){
+			sendMessage("正在遍历第"+i+"张！");
+			//only out
+			Image preImage = imageDAO.findByUkImage(galleryId, i-1).orElse(null);
+			String innerUrl = null;
+			if(preImage == null){
+				innerUrl = startUrl;
+			}else{
+				innerUrl = preImage.getNextInnerUrl();
+			}
+			String innerHtml = getHtml(innerUrl);
+			String imageUrl = getImageUrl(innerHtml);
+			String nextInnerUrl = getNextUrl(innerHtml);
+			image = setImage(imageUrl, innerUrl, nextInnerUrl, galleryId, i);
+			
 			imageList.add(image);
 			
-//			if(downloadImage(imageUrl, fileName)){
-//				sendMessage("系列第"+key+"张下载成功！");
-//			}else{
-//				sendMessage("系列第"+key+"张下载失败！");
-//			}
 		}
-		Map<String, Object> infoMap = new Hashtable<>();
-		infoMap.put("gallery", gallery);
-		infoMap.put("imageList", imageList);
-		return infoMap;
+		return imageList;
 	}
 	
-	public void exDownloadWithDatabase(String url, int begin, int end, String cookie){
+	/**
+	 * 入口
+	 * @param url
+	 * @param begin
+	 * @param end
+	 * @param cookie
+	 */
+	public void exDownload(String url, int begin, int end, String cookie) throws Exception{
 		sendMessage("初始化.......");
 		if(cookie!=null){
 			COOKIE = cookie;
 		}
-		Map<String, Object> infoMap = getInfoMap(url, begin, end);
-		Gallery gallery = (Gallery) infoMap.get("gallery");
-		@SuppressWarnings("unchecked")
-		List<Image> imageList = (List<Image>) infoMap.get("imageList");
-		/**
-		 * infoMap中直接下载
-		 */
-		String title = gallery.getTitle();
-		sendMessage("开始下载："+title);
-		sendMessage("下载总长度："+imageList.size());
-		title = getWindowsTitle(title);
-		String dirName = ROOT_PATH + title;
 		
+		Gallery gallery = getGallery(url);
+		if(gallery==null){
+			sendMessage("请检查地址的有效性！");
+			throw new Exception("地址无效");
+			
+		}
+		
+		List<Image> imageList = getImageList(gallery, begin, end);
+		String title = gallery.getTitle();
+		sendMessage("开始下载:"+title);
+		title = getWindowsTitle(title);
+		String zipFileName = gallery.getSerialId();
+		sendMessage("zipFileName,"+zipFileName);
+		String dirName = ROOT_PATH + title;	
 		File destDir = new File(dirName);
-		System.out.println(destDir.getAbsolutePath());
 		if(!destDir.isDirectory()){
 			destDir.mkdirs();
 		}
-		int reDownload = 3;
-		
-	
-		List<Image> failedList = imageList; //将第一次视为第0次失败
-		while( !(failedList.size() == 0 || reDownload < 0) ){
-			failedList = downloadFailed(dirName, failedList);
-			if(failedList!=null && failedList.size()!=0){
-				sendMessage("失败的集合："+failedList.toString()+"\n开始第"+(4-reDownload)+"次下载失败列表：");
-			}
-			reDownload --;
-		}
-		
-		
+		List<Image> failed = parallelDownload(imageList, dirName);
 		
 		
 		sendMessage("下载结束！\n开始生成压缩包...");
+		sendMessage(pack(zipFileName, dirName));
+		overView(gallery, imageList, failed);
+	}
+	/**
+	 * 下载总览
+	 * @param gallery
+	 * @param imageList
+	 * @param failed
+	 */
+	private void overView(Gallery gallery, List<Image> imageList, List<Image> failed){
+		imageList.sort(new Comparator<Image>() {
+
+			@Override
+			public int compare(Image o1, Image o2) {
+				return o1.getSerialNum()-o2.getSerialNum();
+			}
+		});
+		int length = imageList.size();
+		int failedCount = failed.size();
+		sendMessage("\n--------------------------\n"
+				   + "下载总览\n"
+				   + "-------------------------\n");
+		sendMessage("图集："+gallery.getTitle());
+		sendMessage("范围："+imageList.get(0).getSerialNum()+"-"+imageList.get(length-1).getSerialNum());
+		sendMessage("长度："+length);
+		sendMessage("成功数："+(length-failedCount));
+		sendMessage("失败数："+failedCount);
+		if(failedCount>0){
+			sendMessage("失败列表及地址信息：");
+			for(Image i:failed){
+				sendMessage("第"+i.getSerialNum()+"张："+i.getInnerUrl());
+			}
+		}
+	}
+	
+	
+	/**
+	 * 并行下载
+	 * @param list 图片列表
+	 * @param dirName 保存路径
+	 * @param degree 并行度
+	 * @return
+	 */
+	private List<Image> parallelDownload(List<Image> imageList, String dirName){
+		final int degree = 4;
+		
+		List<Image> needDownload = new ArrayList<>();
+		String fileName = null;
+		for(Image image:imageList){
+			fileName = dirName+"/"+image.getSerialNum()+"."+image.getSuffix();
+			if(!(new File(fileName).exists())){
+				needDownload.add(image);
+			}
+		}
+		List<Image> list = needDownload;
+		int length = list.size();
+		sendMessage("下载总长度："+length);
+		
+		
+		if(length<12){
+			return download(list, dirName);
+		}
+		ThreadPoolExecutor executor = new ThreadPoolExecutor(4, 8, 10, TimeUnit.SECONDS, new SynchronousQueue<Runnable>());
+		int scale = list.size() / degree;
+		int end = 0;
+		int begin = 0;
+		List<Future<List<Image>>> futureList = new ArrayList<>();
+		for(int i=0;i<degree;i++){
+			end = begin + scale;
+			//end = Math.min(end, length);
+			if(i == (degree-1)){
+				end = length;
+			}
+			futureList.add(executor.submit(getDownloadThread(list, begin, end, dirName)));
+			begin = end;
+		}
+		executor.shutdown();
+		try {
+			executor.awaitTermination(2, TimeUnit.HOURS);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		List<Image> failedList = new ArrayList<>();
+		for(Future<List<Image>> future:futureList){
+			try {
+				failedList.addAll(future.get());
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			} catch (ExecutionException e) {
+				e.printStackTrace();
+			}
+		}
+		return failedList;
+	}
+	/**
+	 * 获取并行下载的线程
+	 * @param list
+	 * @param begin
+	 * @param end
+	 * @param dirName
+	 * @return
+	 */
+	private Callable<List<Image>> getDownloadThread(List<Image> list, int begin, int end, String dirName){
+		List<Image> subList = list.subList(begin, end);//一个视图，会影响父子
+		return new Callable<List<Image>>() {
+
+			public List<Image> call() throws Exception {
+				return download(subList, dirName);
+			}
+		};
+	}
+	/**
+	 * 获取并行扫描的线程
+	 * @param gallery
+	 * @param begin
+	 * @param num
+	 * @param startUrl
+	 * @return
+	 */
+	private Callable<List<Image>> getScanThread(Gallery gallery, List<Integer>serialNumList, int from, int to, String startUrl){
+		List<Integer> subList = serialNumList.subList(from, to);
+		return new Callable<List<Image>>() {
+
+			@Override
+			public List<Image> call() throws Exception {
+				return scan(gallery, subList, startUrl);
+			}
+			
+		};
+	}
+	/**
+	 * 将list中的图片下载到dirName
+	 * @param imageList
+	 * @param dirName
+	 * @return
+	 */
+	private List<Image> download(List<Image> imageList, String dirName){
+		int reDownload = 3;
+		//String failedMessage = null;
+		List<Image> failedList = imageList; //将第一次视为第0次失败
+		while( !(failedList.size() == 0 || reDownload < 0) ){
+			failedList = downloadFailed(dirName, failedList);
+//			if(failedList!=null && failedList.size()!=0){
+//				if(reDownload==0){
+//					failedMessage = "";
+//				}else{
+//					failedMessage = "\n开始第"+(4-reDownload)+"次下载失败列表：";
+//				}
+//				sendMessage("失败的集合："+failedList.toString() + failedMessage);
+//			}
+			reDownload --;
+		}
+		return failedList;
+	}
+	/**
+	 * 将dirName打包成zipFileName
+	 * @param zipFileName
+	 * @param dirName
+	 * @return
+	 */
+	private String pack(String zipFileName, String dirName){
+		String failed = "生成失败！";
+		String success = "生成成功！";
 		File zipDir = new File(ZIP_PATH);
 		if(!zipDir.exists()){
 			zipDir.mkdirs();
 		}
-		File zipFile = new File(ZIP_PATH + "imageSet.zip");
+		File zipFile = new File(ZIP_PATH + zipFileName +".zip");
 		if(zipFile.exists()){
 			zipFile.delete();
 		}
@@ -533,17 +704,16 @@ public class Ecrawler {
 			ZipUtil.toZip(dirName, new FileOutputStream(zipFile), true);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
-			sendMessage("生成失败！");
-			return;
+			
+			return failed;
 		} 
-		sendMessage("生成成功！");
-		
+		return success;
 	}
-	
-
-	
 	/**
-	 * 私有方法
+	 * 下载失败的列表
+	 * @param dirName
+	 * @param failedList
+	 * @return
 	 */
 	private  List<Image> downloadFailed(String dirName, List<Image> failedList){
 		String fileName = "";
@@ -554,16 +724,18 @@ public class Ecrawler {
 			imageUrl = image.getUrl();
 			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, 2000);
 			if(null == res || res.getStatusLine().getStatusCode()==403){
-				//imageDAO.deleteById(imageUrl);
-				sendMessage("更新......");
+				
 				String innerHtml = getHtml(image.getInnerUrl());
 				imageUrl = getImageUrl(innerHtml);
 				image.setUrl(imageUrl);
 				image.setGmtModified(new Date());
 				imageDAO.save(image);
+				
 			}
-			if(downloadImage(imageUrl, fileName)){
-				sendMessage("系列第"+image.getSerialNum()+"下载成功！");
+			CloseUtil.close(res);
+			//开启failed loading
+			if(downloadImage(imageUrl, fileName) || failedLoding(fileName, image)){
+				sendMessage( "系列第"+image.getSerialNum()+"下载成功！");
 			}else{
 				sendMessage("系列第"+image.getSerialNum()+"下载失败！");
 				failedList2.add(image);
@@ -572,27 +744,30 @@ public class Ecrawler {
 		return failedList2;
 	}
 	/**
-	 * 获取信息
+	 * 利用failed loading机制来加载有问题的图片
+	 * @param fileName
+	 * @param image
+	 * @return
+	 */
+	private boolean failedLoding(String fileName, Image image){
+		String oldInnerUrl = image.getInnerUrl();
+		String oldInnerHtml = getHtml(oldInnerUrl);
+		String newInnerUrl = oldInnerUrl + newInnerUrlSuffix(oldInnerHtml);
+		String newInnerHtml = getHtml(newInnerUrl);
+		String imageUrl = getImageUrl(newInnerHtml);
+		return downloadImage(imageUrl, fileName);
+	}
+	
+	/**
+	 * 获取图片列表
 	 * @param url
 	 * @param begin
 	 * @param end
 	 * @return
 	 */
-	private Map<String, Object> getInfoMap(String url, int begin, int end){
-		String serialId = getSerialId(url);
-		 
-		List<Gallery> galleryList = galleryDAO.findBySerialId(serialId);
-		if(galleryList==null || galleryList.size()>1){
-			System.out.println("数据库错误了！");
-		}
-		Gallery gallery = null;
-		if(galleryList.size()==1){
-			gallery = galleryList.get(0);
-		}
-		if(gallery == null){
-			
-			return exDownloadOuter(url, begin, end);
-		}
+	private List<Image> getImageList(Gallery gallery, int begin, int end){
+		String serialId = gallery.getSerialId();
+		int degree = 4;
 		int lenth = gallery.getLenth();
 		if(begin<=0 || begin>lenth){
 			begin = 1;
@@ -604,18 +779,16 @@ public class Ecrawler {
 			begin = 1;
 			end = lenth;
 		}
-		
-		int realCount = end - begin;
+		sendMessage(gallery.getTitle()+"--"+lenth);
+		int realCount = end - begin + 1;
 		List<Image> inImage = imageDAO.inImage(serialId, begin, end);
 		int inCount  = inImage.size();
 		if(inCount < realCount){
 			
-			return exDownloadOuter(url, begin, end);
+			List<Image> outImage = parallelScan(gallery, begin, end, inImage , degree);
+			inImage.addAll(outImage);
 		}
-		Map<String, Object> infoMap = new Hashtable<>();
-		infoMap.put("gallery", gallery);
-		infoMap.put("imageList", inImage);
-		return infoMap;
+		return inImage;
 	}
 	
 	/**
@@ -660,17 +833,17 @@ public class Ecrawler {
 	 * @param innerHtml
 	 * @return
 	 */
-	private String getOuterUrl(String innerHtml){
-		//<div class="sb"><a href="*/">
-		String pattern = "<div class=\"sb\"><a href=\"([a-z0-9:/]*/)";
-		Pattern r = Pattern.compile(pattern);
-		Matcher m = r.matcher(innerHtml);
-		String outUrl = "";
-		if(m.find()){
-			outUrl = m.group(1);
-		}
-		return outUrl;
-	}
+	
+//	private String getOuterUrl(String innerHtml){
+//		String pattern = "<div class=\"sb\"><a href=\"([a-z0-9:/]*/)";
+//		Pattern r = Pattern.compile(pattern);
+//		Matcher m = r.matcher(innerHtml);
+//		String outUrl = "";
+//		if(m.find()){
+//			outUrl = m.group(1);
+//		}
+//		return outUrl;
+//	}
 	
 	
 	
@@ -680,7 +853,7 @@ public class Ecrawler {
 	 * @return
 	 * @
 	 */
-	private  HttpGet getRequest(String url) {
+	public  HttpGet getRequest(String url) {
 		String host = null;
 		try {
 			URL uri = new URL(url);
@@ -694,6 +867,7 @@ public class Ecrawler {
 		} catch (MalformedURLException e) {
 			System.out.println(url);
 			e.printStackTrace();
+			return null;
 		}
 		HttpGet httpGet = new HttpGet(url);
 		httpGet.addHeader("Accept", ACCEPT);
@@ -726,5 +900,115 @@ public class Ecrawler {
 		}
 		return SerialId;
 	}
+	/**
+	 * 设置gallery
+	 * @param url
+	 * @return
+	 */
+	private Gallery setGallery(String url){
+		Gallery gallery = new Gallery();
+		String outerHtml = getHtml(url);
+		
+		if(outerHtml == null || outerHtml.contains(STR404)|| outerHtml.contains(STR4042)){
+			
+			return null;
+		}
+		String title = getOriginalTitle(outerHtml);
+		int length = getLenth(outerHtml);
+		String serialId = getSerialId(url);
+		/**
+		 * set区
+		 */
+		gallery.setUrl(url);
+		gallery.setTitle(title);
+		gallery.setLenth(length);
+		gallery.setSerialId(serialId);
+		gallery.setGmtCreate(new Date());
+		gallery.setGmtModified(new Date());
+		this.galleryDAO.save(gallery);
+		return gallery;
+	}
+	/**
+	 * 利用failed loading机制，获取新的innerUrl后缀
+	 * @param innerHtml
+	 * @return
+	 */
+	private String newInnerUrlSuffix(String innerHtml){
+		String innerUrlSuffix = null;
+		Pattern p = Pattern.compile("'(\\d+-\\d+)'");
+		Matcher m = p.matcher(innerHtml);
+		if(m.find()){
+			innerUrlSuffix = "?nl="+m.group(1);
+		}
+		return innerUrlSuffix;
+	}
+	/**
+	 * 保存image
+	 * @param imageUrl
+	 * @param innerUrl
+	 * @param galleryId
+	 * @param serialNum
+	 * @return
+	 */
 	
+	private Image setImage(String imageUrl, String innerUrl, String nextInnerUrl, String galleryId, int serialNum){
+		Image image = new Image();		
+		String suffix = getSuffix(imageUrl);
+		image.setInnerUrl(innerUrl);
+		image.setNextInnerUrl(nextInnerUrl);
+		image.setGalleryId(galleryId);
+		image.setSerialNum(serialNum);
+		image.setSuffix(suffix);
+		image.setUrl(imageUrl);
+		image.setGmtCreate(new Date());
+		image.setGmtModified(new Date());
+		this.imageDAO.save(image);
+		return image;
+	}
+	/**
+	 * 更新gallery信息
+	 * @param gallery
+	 */
+	private void updateGallery(Gallery gallery){
+		String url = gallery.getUrl();
+		String html = getHtml(url);
+		String title = getOriginalTitle(html);
+		Integer length = getLenth(html);
+		if(length.equals(gallery.getLenth()) && title.equals(gallery.getTitle())){
+			return;
+		}
+		gallery.setTitle(title);
+		gallery.setLenth(length);
+		gallery.setGmtModified(new Date());
+		galleryDAO.save(gallery);
+	}
+	/**
+	 * 根据contentType获取charset
+	 * @param contentType
+	 * @return
+	 */
+	private String getCharset(String contentType){
+		String charset = null;
+		Pattern p = Pattern.compile("charset=([a-zA-Z0-9\\-]+)");
+		Matcher m = p.matcher(contentType);
+		if(m.find()){
+			charset = m.group(1);
+		}
+		return charset;
+	}
+	/**
+	 * 根据输入的outer URL获取gallery
+	 * @param url
+	 */
+	private Gallery getGallery(String url){
+		String serialId = getSerialId(url);
+		Optional<Gallery> option = galleryDAO.findBySerialId(serialId);
+		Gallery gallery = option.orElse(null);
+		if(gallery == null){
+			gallery = setGallery(url);
+		}else{
+			updateGallery(gallery);
+		}
+		return gallery;
+	}
 }

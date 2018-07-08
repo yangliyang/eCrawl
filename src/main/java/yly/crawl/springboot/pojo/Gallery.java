@@ -14,7 +14,7 @@ import javax.persistence.Table;
 public class Gallery {
  
 //    @Id //主键标识
-//    @GeneratedValue(strategy = GenerationType.IDENTITY) //自增长方式
+//    @GeneratedValue(strategy = GenerationType.IDENTITY) //数据库决定
 //    @Column(name = "id") //数据库字段名（属性、列名）
 //    private Integer id;
 //     
@@ -102,7 +102,18 @@ public class Gallery {
 	public void setGmtModified(Date gmtModified) {
 		this.gmtModified = gmtModified;
 	}
-    
+//    @Override
+//	public boolean equals(Object obj) {
+//    	if (this == obj) {
+//            return true;
+//        }
+//    	//null会直接返回false
+//        if (obj instanceof Gallery) {
+//           Gallery otherGallery = (Gallery)obj;
+//           return otherGallery.lenth.equals(this.lenth) && otherGallery.title.equals(this.title);
+//        }
+//        return false;
+//	}
     
     
      

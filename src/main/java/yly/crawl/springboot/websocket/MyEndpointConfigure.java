@@ -9,7 +9,7 @@ import org.springframework.context.ApplicationContextAware;
 
 /**
  * 
- * @author Administrator
+
  *这个类的核心就是getEndpointInstance(Class clazz)这个方法。 
    定义了获取类实例是通过ApplicationContext获取。
  *

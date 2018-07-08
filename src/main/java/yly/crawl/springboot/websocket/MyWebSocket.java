@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.websocket.OnClose;
 import javax.websocket.OnError;
@@ -18,12 +20,12 @@ import org.springframework.stereotype.Component;
 import yly.crawl.springboot.dao.GalleryDAO;
 import yly.crawl.springboot.dao.ImageDAO;
 import yly.crawl.springboot.util.Ecrawler;
+import yly.crawl.springboot.util.Transfer;
 
 /**
  * 默认的实现，AutoWired注入失败，猜测是因为@ServerEndpoint管理了，不归spring了
  * 解决方法1：定义一个Config,将其给spring管理
  * 缺点：不是正常的管理。。。
- * @author Administrator
  *
  */
 @Component
@@ -34,13 +36,12 @@ public class MyWebSocket {
 	private  GalleryDAO galleryDAO;
 	@Autowired 
 	private  ImageDAO imageDAO;
-	
     //静态变量，用来记录当前在线连接数。应该把它设计成线程安全的。
     private static int onlineCount = 0;
-
+    private String cookie;
     //concurrent包的线程安全Set，用来存放每个客户端对应的MyWebSocket对象。
     private static CopyOnWriteArraySet<MyWebSocket> webSocketSet = new CopyOnWriteArraySet<MyWebSocket>();
-
+    private static final String HOST="dyidou`h/nsf";
     //与某个客户端的连接会话，需要通过它来给客户端发送数据
     private Session session;
 
@@ -52,7 +53,6 @@ public class MyWebSocket {
         webSocketSet.add(this);     //加入set中
         addOnlineCount();           //在线数加1
         System.out.println("有新连接加入！当前在线人数为" + getOnlineCount());
-        
     }
 
     /**
@@ -72,76 +72,54 @@ public class MyWebSocket {
      * @throws IOException */
     @OnMessage
     public void onMessage(String message, Session session)  {
+    	long start = System.currentTimeMillis();
     	String cookie =null;
     	String[] info = null;
     	if(message.contains("cookie")){
+    		//System.out.println(message);
     		String[] cookieArry = message.split(",");
+    		//System.out.println(cookieArry.length);
     		if(cookieArry.length ==2 ){
     			cookie = cookieArry[1];
     		}
+    		this.cookie = cookie;
     	}else{
     		info = message.split(",");
     		String url = info[0];
-	  		  try {
-	  		   new URL(url);
-	  		  } catch (MalformedURLException e) {
-	  		   sendMessage("URL格式不正确！",session);
-	  		   e.printStackTrace();
-	  		   return;
-	  		  }
+    		if(!URLCheck(url)){
+    		   sendMessage("URL格式不正确！",session);
+ 	  		   sendMessage("ERROR",session);
+ 	  		   return;
+    		}
 	  		 int begin = 0;
 	  		 int end = 0;
 	  		 try{
 	  	  	   begin = Integer.parseInt(info[1]);
 	  	  	   end = Integer.parseInt(info[2]);
 	  	     }catch(NumberFormatException e){
-	  	  	   e.printStackTrace();
-	  	  	   sendMessage("不是数字或者太大！",session);
+	  	  	   
+	  	  	   sendMessage("不是整数或者太大！",session);
+	  	  	   sendMessage("ERROR",session);
 	  	  	   return;
 	  	     }
 	  		 Ecrawler crawler = new Ecrawler(galleryDAO, imageDAO, session);
 	  		 try{
-	  			 crawler.exDownloadWithDatabase(url, begin, end, cookie);
+	  			 crawler.exDownload(url, begin, end, this.cookie);
+	  			 
 	  		}catch(Throwable e){
 	  			e.printStackTrace();
 	  			sendMessage("发生异常错误！", session);
-	  			
+	  			sendMessage("ERROR",session);
 	  			return;
 	  		}
 	  		sendMessage("complete", session);
+	  		long finish = System.currentTimeMillis();
+	  		int seconds = (int) ((finish-start)/1000);
+	  		int minutes = seconds / 60;
+	  		int rest = seconds % 60;
+	  		sendMessage("总耗时："+minutes+"分"+rest+"秒",session);
+	  		
     	}
-		
-//       String[] info = message.split(",");
-//       String url = info[0];
-//       try {
-//    	   new URL(url);
-//       } catch (MalformedURLException e) {
-//    	   sendMessage("URL格式不正确！",session);
-//    	   e.printStackTrace();
-//    	   return;
-//       }
-//       int num = 0;
-//       try{
-//    	   num = Integer.parseInt(info[1]);
-//       }catch(NumberFormatException e){
-//    	   e.printStackTrace();
-//    	   sendMessage("数字！",session);
-//    	   return;
-//       }
-//       if(url.contains("-")){
-//    	   exDownloadInner(url, num);
-//       }else{
-//    	   exDownloadOuter(url, num);
-//       }
-    	
-        //群发消息
-//        for (MyWebSocket item : webSocketSet) {
-//            try {
-//                item.sendMessage(message);
-//            } catch (IOException e) {
-//                e.printStackTrace();
-//            }
-//        }
     }
 
     /**
@@ -150,7 +128,7 @@ public class MyWebSocket {
     @OnError
     public void onError(Session session, Throwable error) {
         System.out.println("发生错误");
-        error.printStackTrace();
+        System.out.println(error.getMessage());
     }
 
     public void sendMessage(String message)  {
@@ -163,12 +141,16 @@ public class MyWebSocket {
         //this.session.getAsyncRemote().sendText(message);
     }
     public void sendMessage(String message,Session session)  {
-        try {
-			session.getBasicRemote().sendText(message+"\n");
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+    	if(session !=null && session.isOpen()){
+	        try {
+				session.getBasicRemote().sendText(message+"\n");
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}else{
+    		System.out.println(message);
+    	}
         //this.session.getAsyncRemote().sendText(message);
     }
 
@@ -197,7 +179,21 @@ public class MyWebSocket {
     public static synchronized void subOnlineCount() {
         MyWebSocket.onlineCount--;
     }
+    private boolean URLCheck(String url){
+    	try {
+			new URL(url);
+		} catch (MalformedURLException e) {
+			return false;
+		}
+    	String s = url;
+    	String host = Transfer.trans(HOST);		
+    	Pattern p = Pattern.compile("^https://"+host+"/g/[0-9]+/[a-z0-9]+/?");
+    	Matcher m = p.matcher(s);
+    	if(m.matches()){
+    		return true;
+    	}
+    	return false;
+    }
     
- 
 	
 }

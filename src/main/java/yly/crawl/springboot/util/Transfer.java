@@ -1,7 +1,7 @@
 package yly.crawl.springboot.util;
 
 public class Transfer {
-
+	
 	public static String trans(String src){
 		String dest = null;
 		byte[] srcBytes = src.getBytes();

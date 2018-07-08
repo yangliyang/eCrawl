@@ -4,8 +4,6 @@ package yly.crawl.springboot.util;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.List;
@@ -15,14 +13,8 @@ import java.util.zip.ZipOutputStream;
  * ZipUtil
  */
 public class ZipUtil {
-	public static void main(String[] args) throws FileNotFoundException {
-		File file = new File("C:/Users/Administrator/Desktop/screenshoot.zip");
-		OutputStream os = new FileOutputStream(file);
-		String src = "C:/Users/Administrator/Desktop/screenshoot";
-		ZipUtil.toZip(src, os, true);
-	
-	}
-	private static final int  BUFFER_SIZE = 2 * 1024;
+
+	private static final int  BUFFER_SIZE = 10 * 1024;
 	
 	/**
 	 * 压缩成ZIP 方法1
@@ -136,6 +128,7 @@ public class ZipUtil {
 					if (KeepDirStructure) {
 						// 注意：file.getName()前面需要带上父文件夹的名字加一斜杠,
 						// 不然最后压缩包中就不能保留原来的文件结构,即：所有文件都跑到压缩包根目录下了
+						
 						compress(file, zos, name + "/" + file.getName(),KeepDirStructure);
 					} else {
 						compress(file, zos, file.getName(),KeepDirStructure);

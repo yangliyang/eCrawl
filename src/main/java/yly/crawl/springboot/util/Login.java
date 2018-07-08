@@ -26,23 +26,18 @@ import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.apache.http.message.BasicNameValuePair;
 
 public class Login {
-//	public static void main(String[] args) {
-//		String[] info = eLogin("ashyang", "tutumoon");
-//		for (String string : info) {
-//			System.out.println(string);
-//		}
-//	}
+
 	private static final String LOGIN_URL = "iuuqr;..gnstlr/d,idou`h/nsf.hoedy/qiq>`bu<Mnfho'BNED<10";
 	private static final String USER = "UserName";
 	private static final String PASS = "PassWord";
 	private static final String COOKIE = "CookieDate";
 	private static final boolean PROXY = true;	//默认使用代理
 	private static final String CODING = "utf8";	//默认编码utf8
-	private static final String PROXY_HOST = "127.0.0.1";
-	private static final int PROXY_PORT = 1080;
+	private static final String PROXY_HOST = "127.0.0.1"; //代理host
+	private static final int PROXY_PORT = 8118; //代理端口
 	private static final int CONNECT_TIMEOUT = 10000;
 	private static final String SUCCESS_FLAG = "Thanks";
-	private static final String MEMBER = "ipb_member_id";
+	private static final String COOKIE_MEMBER = "ipb_member_id";
 	private static final String COOKIE_PASS = "ipb_pass_hash";
 	public static String[] eLogin(String username, String password){
 		String[] ret = new String[3]; //初始为null
@@ -82,7 +77,7 @@ public class Login {
 			//设置返回结果
 			if(html.contains(SUCCESS_FLAG)){
 				ret[0] = "true";
-				ret[1] = getValueByName(cookies, MEMBER);
+				ret[1] = getValueByName(cookies, COOKIE_MEMBER);
 				ret[2] = getValueByName(cookies, COOKIE_PASS);
 				return ret;
 			}
@@ -98,7 +93,7 @@ public class Login {
 		ret[0] = "false";
 		return ret;
 	}
-	private static String stream2String(InputStream in){
+	public static String stream2String(InputStream in){
 		
 		BufferedReader br = null;
 		StringBuffer sb = new StringBuffer();

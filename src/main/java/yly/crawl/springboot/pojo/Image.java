@@ -14,10 +14,7 @@ import javax.persistence.UniqueConstraint;
 @Table(name = "image",uniqueConstraints = {@UniqueConstraint(columnNames={"gallery_id", "serial_num"})}) //对应的表名
 public class Image {
  
-//    @Id //主键标识
-//    @GeneratedValue(strategy = GenerationType.IDENTITY) //自增长方式
-//    @Column(name = "id") //数据库字段名（属性、列名）
-//    private Integer id;
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	@Column(name = "id")
@@ -40,8 +37,13 @@ public class Image {
 
     @Column(name = "inner_url")
     private String innerUrl;
+    
+    @Column(name = "next_inner_url")
+    private String nextInnerUrl;
+    
+    
 
-    @Column(name = "gmt_modified")
+	@Column(name = "gmt_modified")
     private Date gmtModified;
     
 	public String getInnerUrl() {
@@ -116,7 +118,13 @@ public class Image {
 	public void setGmtModified(Date gmtModified) {
 		this.gmtModified = gmtModified;
 	}
-	
+	public String getNextInnerUrl() {
+		return nextInnerUrl;
+	}
+
+	public void setNextInnerUrl(String nextInnerUrl) {
+		this.nextInnerUrl = nextInnerUrl;
+	}
     
     
     

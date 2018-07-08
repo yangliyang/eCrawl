@@ -22,7 +22,7 @@
 		var sem = cookie.split(";");
 	
 		if(sem.length == 2){
-			var colon = sem[0].split(":");
+			var colon = sem[0].split("=");
 			
 			if(colon.length == 2){
 				var userId = colon[1];
@@ -37,7 +37,7 @@
 
 	    //判断当前浏览器是否支持WebSocket
 	    if('WebSocket' in window){
-	        websocket = new WebSocket("ws://localhost:80/websocket");
+	        websocket = new WebSocket("ws://"+[[${localhost}]]+":80/websocket");
 	        init_websocket(websocket);
 	    }
 	    else{
@@ -76,27 +76,28 @@
 
 	    //将消息显示在网页上
 	    total = 0;
-	    
+	    title="";
 	    now = 0.0;
 	    success_num = 0;
 	    function setMessageInnerHTML(msg){
 	    	show = $("#show_message").val();
-	    	
+	    	if(msg.indexOf("zipFileName")!=-1){
+	    		title = msg.split(",")[1];
+	    		return;
+	    	}
             
             if(msg.indexOf("下载总长度") != -1){
             	total = Number(getNumber(msg));
-            	scale = 100.0/total;
+            	
             }
             if(msg.indexOf("下载成功")!=-1){
-            	process = $("#process_success");
+            	
             	success_num++;
-            	now = success_num * 1.0 *100 / total;
-            	if(now>100){
-            		now = 100;
-            	}
-            	nowInt = Math.floor(now);
-            	process.text(nowInt+"%");
-            	process.attr("style","width:"+nowInt+"%;margin:0;");
+            	successProcess(success_num);
+            }
+            if(msg.indexOf("成功数")!=-1){
+            	success_num = getNumber(msg);
+            	successProcess(success_num);
             }
 	    	if(msg=='complete\n'){
 	    		success = Math.floor(now);
@@ -107,6 +108,11 @@
 	    			failed.attr("style","width:"+failedNum+"%;margin:0;");
 	    		}
 	    		$('#download').show();
+	    		msg = '请点击下载按钮进行下载！';
+	    		recovery();
+	    	}
+	    	if(msg=='ERROR\n'){
+	    		recovery();
 	    	}
 			$("#show_message").val(show + msg);
 			var scrollTop = $("#show_message")[0].scrollHeight;  
@@ -117,7 +123,16 @@
 	    function closeWebSocket(){
 	        websocket.close();
 	    }
-
+		function successProcess(success_num){
+			process = $("#process_success");
+			now = success_num * 1.0 *100 / total;
+        	if(now>100){
+        		now = 100;
+        	}
+        	nowInt = Math.floor(now);
+        	process.text(nowInt+"%");
+        	process.attr("style","width:"+nowInt+"%;margin:0;");
+		}
 	    //发送消息
 	    
 	    function send(){
@@ -131,12 +146,17 @@
 				websocket.send(msg);
 			}else{
 				$("#show_message").val("输入不完整！");
+				recovery();
 			}
 	    }
 	    function connect(){
-	    	websocket = new WebSocket("ws://localhost:80/websocket");
+	    	websocket = new WebSocket("ws://"+[[${localhost}]]+":80/websocket");
+	    	if(websocket==null){
+	    		return;
+	    	}
 	    	init_websocket(websocket);
-	    	setMessageInnerHTML("重连成功！\n")
+	    	setMessageInnerHTML("重连成功！\n");
+	    	recovery();
 	    	$('#conn').hide();
 	    }
 		function clear_text(){
@@ -149,15 +169,20 @@
 
 		//init
 		function init(){
+			$("#start").attr("disabled","disabled");
+			$("#start").addClass("disabled");
+			
 			$("#download").hide();
 	    	$("#process_success").attr("style","width:0%;margin:0;");
 	    	$("#process_success").text("0%");
 	    	$("#process_failed").text("0%");
 	    	$("#process_failed").attr("style","width:0%;margin:0;");
 	    	total = 0;
-		    
+		    title = "";
 		    now = 0.0;
 		    success_num = 0;
+		   	websocket.send("cookie,"+[[${cookie}]]);
+		   	
 		}
 		
 		function goDown(){
@@ -168,8 +193,16 @@
 			$("#show_message").scrollTop(0);
 			
 		}
-	
-	
+		function download(){
+			window.open("/download?title="+title);
+		}
+		function target(){
+			window.open("/target?cookie="+[[${cookie}]]);
+		}
+		function recovery(){
+			$("#start").removeAttr("disabled");
+			$("#start").removeClass("disabled");
+		}
 	
 	</script>
 	
@@ -200,10 +233,12 @@
 			</div>
 			
 			<div>
-				<button onclick="send()" class="btn btn-primary">开始</button>
+				<button id="start" onclick="send()" class="btn btn-primary">开始</button>
 				<button id="conn"  onclick="connect()" class="btn btn-primary" style="display:none">重新连接</button>
 				<button onclick="clear_text()" class="btn btn-primary">清空滚屏</button>
-				<a th:href='@{/download}'><button id="download" style="display:none"  class="btn btn-danger" >下载</button></a>
+				<button onclick="target()" class="btn btn-primary">打开目标站</button>
+				<button id="download" style="display:none" onclick="download()" class="btn btn-danger" >下载</button>
+				
 			</div>
 			
 			<div class="progress">
@@ -224,7 +259,7 @@
 				</div>
 			</div>
 			
-			<span id="cookie"  th:text="${cookie}" style="display:none"></span>
+		<!-- <span id="cookie"  th:text="${cookie}" style="display:none"></span> -->	
 		</div>
 		
 	
