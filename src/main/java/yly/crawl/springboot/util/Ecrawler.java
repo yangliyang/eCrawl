@@ -89,10 +89,12 @@ public class Ecrawler {
 					this.session.getBasicRemote().sendText(message+"\n");
 				} catch (IOException e) {
 					System.out.println("浏览器强制断开！");
+					//throw new RuntimeException("停止");
 				}
 	    	}
     	}else{
     		System.out.println(message);
+    		//throw new RuntimeException("停止");
     	}
     }
 
