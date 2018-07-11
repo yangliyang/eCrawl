@@ -279,15 +279,7 @@ public class Ecrawler {
 		}
 		return url;
 	}
-	
-	/**
-	 * 下载图片
-	 * @param url
-	 * @param file
-	 * @
-	 */
-	private  boolean downloadImage(String url, String file) {
-		CloseableHttpResponse response = getResponse(url);
+	private boolean downloadImage(CloseableHttpResponse response, String file){
 		if(null == response){
 			return false;
 		}
@@ -326,6 +318,16 @@ public class Ecrawler {
 			CloseUtil.close(response);
 		}
 		return true;
+	}
+	/**
+	 * 下载图片
+	 * @param url
+	 * @param file
+	 * @
+	 */
+	private  boolean downloadImage(String url, String file) {
+		CloseableHttpResponse response = getResponse(url);
+		return downloadImage(response, file);
 	}
 	/**
 	 * 根据图片url，获得图片的类型（后缀）
@@ -721,22 +723,25 @@ public class Ecrawler {
 		String fileName = "";
 		String imageUrl = "";
 		List<Image> failedList2 = new ArrayList<>();
+		boolean isDownloadSuccess = false;
 		for(Image image:failedList){
 			fileName = dirName+"/"+image.getSerialNum()+"."+image.getSuffix();
 			imageUrl = image.getUrl();
-			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, 2000);
-			if(null == res || res.getStatusLine().getStatusCode()==403){
+			CloseableHttpResponse res = getResponse(imageUrl, 1, DEFAULT_CONNECT_TIMEOUT, DEFAULT_SOCKET_TIMEOUT, 0);
+			if(null == res || res.getStatusLine().getStatusCode()!=200){
 				
 				String innerHtml = getHtml(image.getInnerUrl());
 				imageUrl = getImageUrl(innerHtml);
 				image.setUrl(imageUrl);
 				image.setGmtModified(new Date());
 				imageDAO.save(image);
-				
+				isDownloadSuccess = downloadImage(imageUrl, fileName);
+			}else{
+				isDownloadSuccess = downloadImage(res, fileName);
 			}
-			CloseUtil.close(res);
+			//CloseUtil.close(res);
 			//开启failed loading
-			if(downloadImage(imageUrl, fileName) || failedLoding(fileName, image)){
+			if(isDownloadSuccess || failedLoding(fileName, image)){
 				sendMessage( "系列第"+image.getSerialNum()+"下载成功！");
 			}else{
 				sendMessage("系列第"+image.getSerialNum()+"下载失败！");
